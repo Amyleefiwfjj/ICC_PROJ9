@@ -50,12 +50,12 @@ function addRandomTile(stage = 0) {
 function startTextFeed() {
   const timer = setInterval(() => {
     /* 1) 위로 한 칸 */
-    feed.forEach(m => m.targetY -= lineH);
+    feed.forEach(m => m.targetY -= LINE_H);
 
     /* 2) 다음 문장 */
     if (msgIdx < MESSAGES.length) {
       const newStr = MESSAGES[msgIdx++];
-      feed.push({ str: newStr, y: height + lineH, targetY: height - lineH });
+      feed.push({ str: newStr, y: height + LINE_H, targetY: height - LINE_H });
     } else {
       // 모든 문장을 push 했으므로 타이머 멈춤
       clearInterval(timer);
@@ -70,7 +70,7 @@ function updateFeed() {
     if (m.y > m.targetY) m.y -= FEED_SPEED;
     text(m.str, width / 2, m.y);
   });
-  feed = feed.filter(m => m.y + lineH / 2 > 0);
+  feed = feed.filter(m => m.y + LINE_H / 2 > 0);
 
   /* 모든 문장이 사라지고 나면 안내문 띄우기 */
   if (feedDone && feed.length === 0 && !showPrompt) {
@@ -90,9 +90,7 @@ function mousePressed() {
 }
 
 function goToNextPage() {
-  // TODO: 원하는 동작으로 교체
-  // 예) window.location.href = 'next.html';
-  console.log('Moving to next page…');
+  window.location.href = 'next.html';
 }
 
 
