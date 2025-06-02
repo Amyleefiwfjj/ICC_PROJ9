@@ -1,44 +1,46 @@
 /*──────────────────────────────
   1. 전역 설정
 ──────────────────────────────*/
-const ROWS = 14;
-const COLS = 30;
-const MAX_STAGE = 38;
-const MARGIN = 6;
+const ROWS = 14, COLS = 30, MAX_STAGE = 20, MARGIN = 6;
 
 /* 네온 팔레트 */
 const NEON_COLORS = ['#FFC7C2', '#4BBEBE', '#ABC8C7', '#B2A8B3', '#8EAF9D'];
 
-/* 텍스트 피드 설정 */
-const lineH = 32;      // 한 줄 높이
-const FEED_SPEED = 2;       // px/frame 위로 이동
-const FEED_INTERVAL = 2000;    // 2 s마다 새 메시지
+/* 텍스트 피드 */
+const LINE_H = 32;           // 한 줄 높이
+const FEED_SPEED = 2;        // px/frame
+const FEED_INTERVAL = 2000;  // ms
 const MESSAGES = [
-  '당신은 지금 진화의 현장을 보고 계십니다',
-  '',
-  '현생 인류는 1–2% 네안데르탈인 DNA를 보유합니다.', '',
+  '당신은 지금 진화의 현장을 보고 계십니다.', '',
+  'You are witnessing evolution in action.', '',
+  '눈으로 볼 수 있듯, 우리는 같은 조상으로부터 나왔습니다.', '',
+  'As you can see, we came from a common ancestor.', '',
+  '같은 조상으로부터 나왔으니, 우리는 한 가족이 아닐까요?', '',
+  'Since we came from a common ancestor, doesn\'t that make us one family?', '',
+  '그렇습니다. 우리 지구인은 하나의 큰 가족입니다.', '',
+  'That\'s right — we, the people of Earth, are one big family.', '',
 ];
-let feed = [];    // {str, y, targetY}
+let feed = [];          // {str,y,targetY}
 let msgIdx = 0;
-
+let feedDone = false;   // 모든 메시지를 다 뿌렸는지 여부
+let showPrompt = false;
 /* 게임 데이터 */
 let grid, evoImages = [], bgColors = [], tileSize;
 
 /*──────────────────────────────
-  2. 유틸 함수
+  2. 유틸
 ──────────────────────────────*/
 function randomizeBgColors() {
-  bgColors = Array.from({ length: ROWS }, () =>
-    Array.from({ length: COLS },
-      () => color(random(NEON_COLORS) + '64')));
+  bgColors = Array.from({ length: ROWS }, () => Array.from({ length: COLS },
+    () => color(random(NEON_COLORS) + '64')));
 }
 function addRandomTile(stage = 0) {
-  const blanks = [];
+  const slots = [];
   for (let r = 0; r < ROWS; r++)
     for (let c = 0; c < COLS; c++)
-      if (grid[r][c] < 0) blanks.push({ r, c });
-  if (blanks.length === 0) return;
-  const { r, c } = random(blanks);
+      if (grid[r][c] < 0) slots.push({ r, c });
+  if (!slots.length) return;
+  const { r, c } = random(slots);
   grid[r][c] = stage;
 }
 
@@ -46,29 +48,56 @@ function addRandomTile(stage = 0) {
   3. 텍스트 피드
 ──────────────────────────────*/
 function startTextFeed() {
-  setInterval(() => {
+  const timer = setInterval(() => {
+    /* 1) 위로 한 칸 */
     feed.forEach(m => m.targetY -= lineH);
-    const newStr = MESSAGES[msgIdx];
-    msgIdx = (msgIdx + 1) % MESSAGES.length;
-    feed.push({ str: newStr, y: height + lineH, targetY: height - lineH });
+
+    /* 2) 다음 문장 */
+    if (msgIdx < MESSAGES.length) {
+      const newStr = MESSAGES[msgIdx++];
+      feed.push({ str: newStr, y: height + lineH, targetY: height - lineH });
+    } else {
+      // 모든 문장을 push 했으므로 타이머 멈춤
+      clearInterval(timer);
+      feedDone = true;           // 플래그 ON
+    }
   }, FEED_INTERVAL);
 }
-/* 텍스트 피드 매-프레임 업데이트 */
+
 function updateFeed() {
-  /* 1️⃣ 위치 갱신 */
+  /* 위치 갱신 & 그리기 */
   feed.forEach(m => {
-    if (m.y > m.targetY) m.y -= FEED_SPEED;   // 위로 이동
+    if (m.y > m.targetY) m.y -= FEED_SPEED;
+    text(m.str, width / 2, m.y);
   });
+  feed = feed.filter(m => m.y + lineH / 2 > 0);
 
-  /* 2️⃣ 화면 밖(윗쪽)으로 사라진 줄은 제거 */
-  feed = feed.filter(m => m.y + lineH / 2 > 0); // 중앙 y가 완전히 위로 나가면 삭제
+  /* 모든 문장이 사라지고 나면 안내문 띄우기 */
+  if (feedDone && feed.length === 0 && !showPrompt) {
+    showPrompt = true;
+  }
 
-  /* 3️⃣ 남은 줄만 그리기 */
-  feed.forEach(m => text(m.str, width / 2, m.y));
+  if (showPrompt) {
+    push();
+    textSize(24);
+    fill('#FFEE58');
+    text('Click to move to next page', width / 2, height / 2);
+    pop();
+  }
+}
+function mousePressed() {
+  if (showPrompt) goToNextPage();
 }
 
+function goToNextPage() {
+  // TODO: 원하는 동작으로 교체
+  // 예) window.location.href = 'next.html';
+  console.log('Moving to next page…');
+}
+
+
 /*──────────────────────────────
-  4. p5: preload / setup / draw
+  4. preload / setup
 ──────────────────────────────*/
 function preload() {
   evoImages = Array(MAX_STAGE).fill(null);
@@ -83,11 +112,11 @@ function setup() {
   createCanvas(windowWidth, windowHeight);
   initGame();
 
-  /* ⏱ 0.1초마다 임의 방향키 입력 */
+  /* 자동 방향키 입력: 0.2 s */
   setInterval(() => {
     keyCode = random([LEFT_ARROW, RIGHT_ARROW, UP_ARROW, DOWN_ARROW]);
     keyPressed();
-  }, 100);
+  }, 200);
 
   startTextFeed();
   textAlign(CENTER, CENTER); textSize(20); fill('#fff');
@@ -95,32 +124,33 @@ function setup() {
 function initGame() {
   grid = Array.from({ length: ROWS }, () => Array(COLS).fill(-1));
   randomizeBgColors();
-  for (let i = 0; i < 8; i++) addRandomTile(0);   // 1단계 8개
-  for (let i = 0; i < 4; i++) addRandomTile(1);   // 2단계 4개
+  for (let i = 0; i < 8; i++) addRandomTile(0);
+  for (let i = 0; i < 4; i++) addRandomTile(1);
 }
+
+/*──────────────────────────────
+  5. draw 루프
+──────────────────────────────*/
 function draw() {
   background(0);
 
-  /* ─ 보드 그리기 ─ */
   const availW = width - MARGIN * (COLS + 1);
   const availH = height - MARGIN * (ROWS + 1);
   tileSize = min(availW / COLS, availH / ROWS);
 
-  // 빈칸 배경
+  // 빈 칸
   noStroke();
   for (let r = 0; r < ROWS; r++)
     for (let c = 0; c < COLS; c++) {
       const x = MARGIN + c * (tileSize + MARGIN);
       const y = MARGIN + r * (tileSize + MARGIN);
-      fill(bgColors[r][c]);
-      rect(x, y, tileSize, tileSize, 6);
+      fill(bgColors[r][c]); rect(x, y, tileSize, tileSize, 6);
     }
 
   // 타일
   for (let r = 0; r < ROWS; r++)
     for (let c = 0; c < COLS; c++) {
-      const v = grid[r][c];
-      if (v < 0) continue;
+      const v = grid[r][c]; if (v < 0) continue;
       const x = MARGIN + c * (tileSize + MARGIN);
       const y = MARGIN + r * (tileSize + MARGIN);
       const img = evoImages[v];
@@ -140,18 +170,18 @@ function draw() {
       }
     }
 
-  /* ─ 텍스트 피드 ─ */
-  updateFeed();
+  updateFeed();          // 텍스트 레이어
 }
 function windowResized() { resizeCanvas(windowWidth, windowHeight); }
 
 /*──────────────────────────────
-  5. 2048 이동·병합
+  6. 2048 로직
 ──────────────────────────────*/
 function slideLine(a) {
   a = a.filter(v => v >= 0);
-  for (let i = 0; i < a.length - 1; i++)
+  for (let i = 0; i < a.length - 1; i++) {
     if (a[i] === a[i + 1] && a[i] < MAX_STAGE - 1) { a[i]++; a[i + 1] = -1; i++; }
+  }
   return a.filter(v => v >= 0);
 }
 function move(dir) {
@@ -206,7 +236,7 @@ function isGameOver() {
 }
 
 /*──────────────────────────────
-  6. 모든 생명체 나열
+  7. 생명체 나열
 ──────────────────────────────*/
 function showAllSpecies() {
   const set = new Set();
