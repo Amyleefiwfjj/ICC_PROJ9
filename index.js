@@ -11,13 +11,13 @@ const LINE_H = 32;           // 한 줄 높이
 const FEED_SPEED = 2;        // px/frame
 const FEED_INTERVAL = 2000;  // ms
 const MESSAGES = [
-  '당신은 지금 진화의 현장을 보고 계십니다.', '',
+  '당신은 지금 진화의 현장을 보고 계십니다.',
   'You are witnessing evolution in action.', '',
-  '눈으로 볼 수 있듯, 우리는 같은 조상으로부터 나왔습니다.', '',
+  '눈으로 볼 수 있듯, 우리는 같은 조상으로부터 나왔습니다.',
   'As you can see, we came from a common ancestor.', '',
-  '같은 조상으로부터 나왔으니, 우리는 한 가족이 아닐까요?', '',
+  '같은 조상으로부터 나왔으니, 우리는 한 가족이 아닐까요?',
   'Since we came from a common ancestor, doesn\'t that make us one family?', '',
-  '그렇습니다. 우리 지구인은 하나의 큰 가족입니다.', '',
+  '그렇습니다. 우리 지구인은 하나의 큰 가족입니다.',
   'That\'s right — we, the people of Earth, are one big family.', '',
 ];
 let feed = [];          // {str,y,targetY}
