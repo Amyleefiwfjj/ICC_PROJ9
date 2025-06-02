@@ -17,6 +17,9 @@ let familyTargetY;              // 최종 고정될 y 위치
 let familySpeed = 2;            // 올라가는 속도 (픽셀/프레임)
 let familyScaledW, familyScaledH; // 캔버스 크기에 맞춘 이미지 크기
 
+// 회전용 각도 변수
+let familyAngle = 0;
+
 function preload() {
     // 1) 배경 동영상 로드
     bgVideo = createVideo('assets/earth.mp4', () => {
@@ -59,7 +62,7 @@ function setup() {
     // 화면 아래(보이지 않는 영역)에서 출발
     familyY = height + familyScaledH / 2 + 20;
     // 최종 고정될 위치: 캔버스 맨 아래에서 약간 위 (이미지 절반 높이 + 마진)
-    familyTargetY = height - (familyScaledH / 2) - 20;
+    familyTargetY = height - (familyScaledH / 2) - 40;
 }
 
 function draw() {
@@ -104,12 +107,11 @@ function draw() {
 
         // (7) 새로 호버가 시작된 경우: offsets[i]에 불규칙 오프셋 할당
         if (hovering && !isHover[i]) {
-            // 화면 밖으로 살짝 튀어나갈 정도의 랜덤 오프셋 (±20px 범위)
             offsets[i].x = random(-20, 20);
             offsets[i].y = random(-20, 20);
             isHover[i] = true;
         }
-        // (8) 호버 상태가 아닐 때: 단계적으로 offsets[i]를 (0,0)으로 복귀시키기
+        // (8) 호버 상태가 아닐 때: 단계적으로 offsets[i]를 (0,0)으로 복귀
         if (!hovering) {
             isHover[i] = false;
             const lerpFactor = 0.05;
@@ -121,7 +123,7 @@ function draw() {
         let drawX = x0 + offsets[i].x;
         let drawY = y0 + offsets[i].y;
 
-        // (10) 위성 이미지를 그리되, 마우스 호버 여부에 따라 살짝 투명하게 표현 (선택 사항)
+        // (10) 위성 이미지를 그리되, 마우스 호버 여부에 따라 투명도 조절
         if (hovering) {
             tint(255, 200);
         } else {
@@ -134,7 +136,7 @@ function draw() {
     pop();
 
     // ─────────────────────────────────────────────
-    // ← 텍스트 대신 가족 메시지 이미지를 아래에서 올라오게 하는 부분
+    // 가족 메시지 이미지(텍스트 PNG) 그리기
     // ─────────────────────────────────────────────
 
     // (1) 아직 familyImg가 완전히 로드되지 않았으면 draw() 탈출
@@ -150,8 +152,40 @@ function draw() {
         }
     }
 
-    // (3) 화면 하단 중앙에 familyImg 그리기 (scaled width/height 사용)
-    image(familyImg, width / 2, familyY, familyScaledW, familyScaledH);
+    // (3) 이미지 위에 마우스가 올라와 있는지 판정
+    // → 이미지 중심 = (width/2, familyY), 크기 = (familyScaledW, familyScaledH)
+    let overFamily = false;
+    let leftX = width / 2 - familyScaledW / 2;
+    let rightX = width / 2 + familyScaledW / 2;
+    let topY = familyY - familyScaledH / 2;
+    let bottomY = familyY + familyScaledH / 2;
+    if (mouseX >= leftX && mouseX <= rightX && mouseY >= topY && mouseY <= bottomY) {
+        overFamily = true;
+    }
+
+    // (4) 마우스가 이미지 위에 있으면 회전 각도 증가, 벗어나면 0으로 리셋
+    if (overFamily) {
+        familyAngle += 0.1; // 회전 속도 조절 (라디안)
+    } else {
+        familyAngle = 0;
+    }
+
+    // (5) 투명도 설정: 호버 시 불투명, 아닐 때 반투명
+    if (overFamily) {
+        tint(255, 180);
+    } else {
+        tint(255, 150);
+    }
+
+    // (6) 화면 하단 중앙에 familyImg를 회전시켜 그리기
+    push();
+    translate(width / 2, familyY);
+    rotate(familyAngle);
+    image(familyImg, 0, 0, familyScaledW, familyScaledH);
+    pop();
+
+    noTint();  // 다음 렌더링을 위해 tint 해제
+
     // ─────────────────────────────────────────────
     // 가족 메시지 이미지 추가 부분 끝
     // ─────────────────────────────────────────────

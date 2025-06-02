@@ -18,7 +18,7 @@ const MESSAGES = [
   '같은 조상으로부터 나왔으니, 우리는 한 가족이 아닐까요?',
   'Since we came from a common ancestor, doesn\'t that make us one family?', '',
   '그렇습니다. 우리 지구인은 하나의 큰 가족입니다.',
-  'That\'s right — we, the people of Earth, are one big family.', '',
+  'That\'s right — we, the people of Earth, are one big family.',
 ];
 let feed = [];          // {str,y,targetY}
 let msgIdx = 0;
@@ -43,32 +43,38 @@ function addRandomTile(stage = 0) {
   const { r, c } = random(slots);
   grid[r][c] = stage;
 }
+function pushNextMessage() {
+  // (1) 이미 화면에 떠 있는 모든 메시지는 한 줄 위로 (targetY -= LINE_H)
+  feed.forEach(m => m.targetY -= LINE_H);
 
+  // (2) 새로운 메시지 추가
+  const newStr = MESSAGES[msgIdx++];
+  feed.push({
+    str: newStr,
+    y: height + LINE_H,         // 화면 밖(아래)에서 시작
+    targetY: height - LINE_H    // 첫 번째 줄 기준 목표 y값
+  });
+}
 /*──────────────────────────────
   3. 텍스트 피드
 ──────────────────────────────*/
 function startTextFeed() {
+  pushNextMessage();
   const timer = setInterval(() => {
-    /* 1) 위로 한 칸 */
-    feed.forEach(m => m.targetY -= LINE_H);
-
-    /* 2) 다음 문장 */
     if (msgIdx < MESSAGES.length) {
-      const newStr = MESSAGES[msgIdx++];
-      feed.push({ str: newStr, y: height + LINE_H, targetY: height - LINE_H });
+      pushNextMessage();
     } else {
-      // 모든 문장을 push 했으므로 타이머 멈춤
       clearInterval(timer);
-      feedDone = true;           // 플래그 ON
+      feedDone = true;
       showPrompt = true;
     }
   }, FEED_INTERVAL);
 }
-
 function updateFeed() {
   /* 위치 갱신 & 그리기 */
   feed.forEach(m => {
     if (m.y > m.targetY) m.y -= FEED_SPEED;
+    fill(255);         // 흰색 글씨
     text(m.str, width / 2, m.y);
   });
   feed = feed.filter(m => m.y + LINE_H / 2 > 0);
@@ -119,6 +125,8 @@ function setup() {
 
   startTextFeed();
   textAlign(CENTER, CENTER); textSize(20); fill('#fff');
+
+
 }
 function initGame() {
   grid = Array.from({ length: ROWS }, () => Array(COLS).fill(-1));
