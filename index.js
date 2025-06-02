@@ -60,6 +60,7 @@ function startTextFeed() {
       // 모든 문장을 push 했으므로 타이머 멈춤
       clearInterval(timer);
       feedDone = true;           // 플래그 ON
+      showPrompt = true;
     }
   }, FEED_INTERVAL);
 }
