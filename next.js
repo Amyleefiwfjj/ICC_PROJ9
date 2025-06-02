@@ -10,6 +10,13 @@ let offsets = [];               // p5.Vector 배열
 // 위성별 호버 상태를 관리하기 위한 불리언 플래그
 let isHover = [];               // boolean 배열
 
+// 가족 메시지 이미지를 아래에서 위로 올릴 때 쓸 변수들
+let familyImg;                  // “WE ARE ONE BIG FAMILY.png” 이미지
+let familyY;                    // 현재 y 위치
+let familyTargetY;              // 최종 고정될 y 위치
+let familySpeed = 2;            // 올라가는 속도 (픽셀/프레임)
+let familyScaledW, familyScaledH; // 캔버스 크기에 맞춘 이미지 크기
+
 function preload() {
     // 1) 배경 동영상 로드
     bgVideo = createVideo('assets/earth.mp4', () => {
@@ -23,6 +30,9 @@ function preload() {
         let fileName = `assets/${nf(i, 2)}.png`;
         sats.push(loadImage(fileName));
     }
+
+    // 3) 가족 메시지 이미지 로드 (“WE ARE ONE BIG FAMILY.png”)
+    familyImg = loadImage('assets/WE ARE ONE BIG FAMILY.png');
 }
 
 function setup() {
@@ -35,6 +45,21 @@ function setup() {
         offsets.push(createVector(0, 0));
         isHover.push(false);
     }
+
+    // 4) 가족 메시지 이미지 초기 위치·스케일 계산
+    //    (가로 크기를 캔버스 너비의 60%로 조정)
+    if (familyImg.width > 0) {
+        familyScaledW = width * 0.6;
+        familyScaledH = (familyImg.height / familyImg.width) * familyScaledW;
+    } else {
+        // 이미지 로드 지연될 경우 임시값
+        familyScaledW = width * 0.6;
+        familyScaledH = familyScaledW * 0.3;
+    }
+    // 화면 아래(보이지 않는 영역)에서 출발
+    familyY = height + familyScaledH / 2 + 20;
+    // 최종 고정될 위치: 캔버스 맨 아래에서 약간 위 (이미지 절반 높이 + 마진)
+    familyTargetY = height - (familyScaledH / 2) - 20;
 }
 
 function draw() {
@@ -56,7 +81,7 @@ function draw() {
     for (let i = 0; i < NUM_SATS; i++) {
         // (1) 궤도 각도 계산: angleRaw ∈ [0, 180)
         let angleRaw = (frameCount * 0.5 + i * (180 / NUM_SATS)) % 180;
-        // (2) 실제 궤도 각도: 140° → 320° (원래 135°→315°였으나 예시로 140° 사용)
+        // (2) 실제 궤도 각도: 140° → 320°
         let angle = radians(angleRaw + 140);
 
         // (3) 위성별 미세 궤도 반경
@@ -87,7 +112,6 @@ function draw() {
         // (8) 호버 상태가 아닐 때: 단계적으로 offsets[i]를 (0,0)으로 복귀시키기
         if (!hovering) {
             isHover[i] = false;
-            // lerpFactor가 작을수록 천천히 복귀
             const lerpFactor = 0.05;
             offsets[i].x = lerp(offsets[i].x, 0, lerpFactor);
             offsets[i].y = lerp(offsets[i].y, 0, lerpFactor);
@@ -98,9 +122,8 @@ function draw() {
         let drawY = y0 + offsets[i].y;
 
         // (10) 위성 이미지를 그리되, 마우스 호버 여부에 따라 살짝 투명하게 표현 (선택 사항)
-        //     – 색·크기 변경 요구가 아니므로, hover 시 투명도를 약간 줄여서 시각적으로 구분할 수 있게 함
         if (hovering) {
-            tint(255, 200);  // 살짝 투명
+            tint(255, 200);
         } else {
             noTint();
         }
@@ -109,8 +132,38 @@ function draw() {
     }
 
     pop();
+
+    // ─────────────────────────────────────────────
+    // ← 텍스트 대신 가족 메시지 이미지를 아래에서 올라오게 하는 부분
+    // ─────────────────────────────────────────────
+
+    // (1) 아직 familyImg가 완전히 로드되지 않았으면 draw() 탈출
+    if (!familyImg || familyImg.width === 0) {
+        return;
+    }
+
+    // (2) familyY가 최종 위치에 도달하지 않았다면 위로 이동
+    if (familyY > familyTargetY) {
+        familyY -= familySpeed;
+        if (familyY < familyTargetY) {
+            familyY = familyTargetY;
+        }
+    }
+
+    // (3) 화면 하단 중앙에 familyImg 그리기 (scaled width/height 사용)
+    image(familyImg, width / 2, familyY, familyScaledW, familyScaledH);
+    // ─────────────────────────────────────────────
+    // 가족 메시지 이미지 추가 부분 끝
+    // ─────────────────────────────────────────────
 }
 
 function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
+
+    // 창 크기 바뀌면 familyScaledW/H와 targetY도 재계산
+    if (familyImg && familyImg.width > 0) {
+        familyScaledW = width * 0.6;
+        familyScaledH = (familyImg.height / familyImg.width) * familyScaledW;
+        familyTargetY = height - (familyScaledH / 2) - 20;
+    }
 }
